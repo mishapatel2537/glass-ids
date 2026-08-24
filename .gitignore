@@ -1,0 +1,6 @@
+glassids-env/
+data/raw/
+data/processed/
+*.pcap
+*.csv
+.ipynb_checkpoints/
