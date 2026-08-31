@@ -1,4 +1,4 @@
-# GlassIDS
+# GlassIDS 🛡️
 
 ### Explainable, Self-Tested Intrusion Detection & Autonomous Response System
 
@@ -8,7 +8,7 @@ GlassIDS is a machine-learning-based Network Intrusion Detection System (IDS) de
 
 The project is being developed to go beyond simply training a model on a public dataset. It combines network traffic analysis, machine learning, explainability, controlled real-world testing, and an agentic response layer.
 
-## What GlassIDS Does
+## 🔄 What GlassIDS Does
 
 The planned system follows this general pipeline:
 
@@ -32,7 +32,7 @@ Decision Log
 
 The detector will work primarily with network-flow features rather than analyzing individual packets directly.
 
-## Technologies
+## 🛠️ Technologies
 
 The project currently uses or plans to use:
 
@@ -47,37 +47,33 @@ The project currently uses or plans to use:
 * **Anthropic / Claude API** for the agentic decision layer
 * **nftables** for firewall-based responses
 
-## Current Progress
+## 📌 Current Progress
 
-### Completed
+### ✅ Completed
 
-The initial networking and data-preparation stage has been completed.
+The networking, data-preparation, and baseline-model stages are done:
 
 * Development and security-testing environment set up
 * Network traffic captured and inspected
 * Basic packet and flow concepts understood
 * CIC-IDS2017 obtained and explored
-* Flow-feature data cleaned
-* Missing and invalid values checked
-* Class imbalance examined
+* Flow-feature data cleaned, with missing/invalid values checked and class imbalance examined
+* Baseline XGBoost model trained and evaluated across all 15 traffic classes
+* Full baseline methodology and results documented: see [`docs/Baseline-model_Deliverable.md`](docs/Baseline-model_Deliverable.md)
 
+### 🔄 In Progress
 
-### In Progress
+The intelligence and explainability components are now being built:
 
-The main detection and intelligence components are now being developed:
-
-* Initial feature-extraction pipeline
-* Extracted features being compared against the dataset's existing feature data
-* XGBoost baseline model
-* Model evaluation and performance analysis
+* Initial self-extracted feature-extraction pipeline, validated against the dataset's existing feature data
 * PyTorch deep-learning model
 * XGBoost vs. PyTorch comparison
-* SHAP-based explanations
+* SHAP-based explanations for the baseline model, including its known confusion patterns (Bot vs. BENIGN false positives, Web Attack subtype overlap)
 * Controlled attack-generation environment
 
-### Planned
+### 🗺️ Planned
 
-Once the detection models are working, the project will move toward:
+Once the detection and explainability work above is solid, the project will move toward:
 
 * Testing against attacks generated from Kali Linux
 * Measuring detection and false-positive performance on previously unseen traffic
@@ -88,7 +84,7 @@ Once the detection models are working, the project will move toward:
 
 Additional planned work includes an autoencoder-based anomaly detector, a comparison with Suricata, security scanning of the project code, and a threat-model section.
 
-## Testing Approach
+## 🧪 Testing Approach
 
 An important part of GlassIDS is that it will not be evaluated only on the public dataset.
 
@@ -98,7 +94,7 @@ The generated traffic will then be captured and passed through the same feature-
 
 This allows the project to investigate whether a model trained on older public data can recognize attacks generated independently in the lab.
 
-## Explainability
+## 🔍 Explainability
 
 GlassIDS is designed to make its predictions understandable rather than treating the model as a black box.
 
@@ -120,7 +116,7 @@ Confidence: High
 
 These explanations will also become part of the evidence supplied to the response agent.
 
-## Autonomous Response
+## 🤖 Autonomous Response
 
 The final stage of the project introduces an LLM-based decision layer.
 
@@ -135,9 +131,10 @@ Possible responses are:
 
 The reasoning and resulting action will be recorded so that the complete path from detection to response can be reviewed later.
 
-## Current Status
+## 📍 Current Status
 
 GlassIDS is **actively under development**.
 
-The networking, dataset, cleaning, and initial feature-extraction work is in place. The machine-learning, explainability, attack-validation, and autonomous-response components are still being built.
+The networking, dataset, cleaning, and feature-extraction work is done, and the baseline XGBoost model is trained and evaluated with strong results across most attack types (full write-up in [`docs/Baseline-model_Deliverable.md`](docs/Baseline-model_Deliverable.md)). 🎯
 
+Currently working on the PyTorch comparison model and SHAP-based explainability. The attack-validation and autonomous-response layers are still ahead.
