@@ -51,7 +51,7 @@ The project currently uses or plans to use:
 
 ### ✅ Completed
 
-The networking, data-preparation, and baseline-model stages are done:
+The networking, data-preparation, baseline-model, and architecture-comparison stages are done:
 
 * Development and security-testing environment set up
 * Network traffic captured and inspected
@@ -60,20 +60,20 @@ The networking, data-preparation, and baseline-model stages are done:
 * Flow-feature data cleaned, with missing/invalid values checked and class imbalance examined
 * Baseline XGBoost model trained and evaluated across all 15 traffic classes
 * Full baseline methodology and results documented: see [`docs/Baseline-model_Deliverable.md`](docs/Baseline-model_Deliverable.md)
+* PyTorch MLP and 1D-CNN trained and evaluated against the baseline under identical features, split, and class-imbalance handling
+* Full architecture-comparison methodology and findings documented: see [`docs/PyTorch-XGBoost_Comparison.md`](docs/PyTorch-XGBoost_Comparison.md)
 
 ### 🔄 In Progress
 
-The intelligence and explainability components are now being built:
+The explainability and validation components are now being built:
 
 * Initial self-extracted feature-extraction pipeline, validated against the dataset's existing feature data
-* PyTorch deep-learning model
-* XGBoost vs. PyTorch comparison
 * SHAP-based explanations for the baseline model, including its known confusion patterns (Bot vs. BENIGN false positives, Web Attack subtype overlap)
 * Controlled attack-generation environment
 
 ### 🗺️ Planned
 
-Once the detection and explainability work above is solid, the project will move toward:
+Once the explainability work above is solid, the project will move toward:
 
 * Testing against attacks generated from Kali Linux
 * Measuring detection and false-positive performance on previously unseen traffic
@@ -135,6 +135,6 @@ The reasoning and resulting action will be recorded so that the complete path fr
 
 GlassIDS is **actively under development**.
 
-The networking, dataset, cleaning, and feature-extraction work is done, and the baseline XGBoost model is trained and evaluated with strong results across most attack types (full write-up in [`docs/Baseline-model_Deliverable.md`](docs/Baseline-model_Deliverable.md)). 🎯
+The networking, dataset, cleaning, and feature-extraction work is done. The baseline XGBoost model is trained and evaluated with strong results across most attack types, and a controlled comparison against a PyTorch MLP and 1D-CNN is complete as well, finding that XGBoost's approach to class imbalance doesn't transfer cleanly to neural architectures (full write-ups for both in `docs/`). 🎯
 
-Currently working on the PyTorch comparison model and SHAP-based explainability. The attack-validation and autonomous-response layers are still ahead.
+Currently working on SHAP-based explainability. The attack-validation and autonomous-response layers are still ahead.
