@@ -51,7 +51,7 @@ The project currently uses or plans to use:
 
 ### ✅ Completed
 
-The networking, data-preparation, baseline-model, and architecture-comparison stages are done:
+The networking, data-preparation, modeling, and explainability stages are done:
 
 * Development and security-testing environment set up
 * Network traffic captured and inspected
@@ -62,25 +62,23 @@ The networking, data-preparation, baseline-model, and architecture-comparison st
 * Full baseline methodology and results documented: see [`docs/Baseline-model_Deliverable.md`](docs/Baseline-model_Deliverable.md)
 * PyTorch MLP and 1D-CNN trained and evaluated against the baseline under identical features, split, and class-imbalance handling
 * Full architecture-comparison methodology and findings documented: see [`docs/PyTorch-XGBoost_Comparison.md`](docs/PyTorch-XGBoost_Comparison.md)
+* SHAP-based explanations generated for all three models, covering both known confusion patterns (Bot vs. BENIGN false positives, Web Attack subtype overlap) with global and local (single-alert) explanations
+* Full SHAP methodology and findings documented: see [`docs/SHAP_Explainability.md`](docs/SHAP_Explainability.md)
 
 ### 🔄 In Progress
 
-The explainability and validation components are now being built:
-
 * Initial self-extracted feature-extraction pipeline, validated against the dataset's existing feature data
-* SHAP-based explanations for the baseline model, including its known confusion patterns (Bot vs. BENIGN false positives, Web Attack subtype overlap)
-* Controlled attack-generation environment
 
 ### 🗺️ Planned
 
-Once the explainability work above is solid, the project will move toward:
+With the modeling and explainability work done, the project moves toward the agentic layer next, with live attack-generation testing deliberately saved for last:
 
-* Testing against attacks generated from Kali Linux
-* Measuring detection and false-positive performance on previously unseen traffic
 * Connecting SHAP explanations to an LLM decision agent
 * Allowing the agent to choose between block, rate-limit, log-only, or escalate
 * Connecting appropriate responses to `nftables`
 * Recording decisions and reasoning in an auditable log
+* Setting up the controlled attack-generation environment (target VM and Kali networking) and testing against Kali-generated attacks (port scans, brute-force attempts, slow denial-of-service traffic)
+* Measuring detection and false-positive performance on previously unseen traffic
 
 Additional planned work includes an autoencoder-based anomaly detector, a comparison with Suricata, security scanning of the project code, and a threat-model section.
 
@@ -98,7 +96,7 @@ This allows the project to investigate whether a model trained on older public d
 
 GlassIDS is designed to make its predictions understandable rather than treating the model as a black box.
 
-SHAP will be used to identify which network-flow features contributed to a prediction.
+SHAP is used to identify which network-flow features contributed to a prediction, both globally (what matters across many predictions) and locally (why one specific alert fired).
 
 For example, an alert should eventually be able to show:
 
@@ -135,6 +133,6 @@ The reasoning and resulting action will be recorded so that the complete path fr
 
 GlassIDS is **actively under development**.
 
-The networking, dataset, cleaning, and feature-extraction work is done. The baseline XGBoost model is trained and evaluated with strong results across most attack types, and a controlled comparison against a PyTorch MLP and 1D-CNN is complete as well, finding that XGBoost's approach to class imbalance doesn't transfer cleanly to neural architectures (full write-ups for both in `docs/`). 🎯
+The baseline XGBoost model, the PyTorch architecture comparison, and SHAP-based explainability across all three models are complete, including a mechanistic explanation for both known confusion patterns and one worked local example of a false positive (full write-ups for all three in `docs/`). 🎯
 
-Currently working on SHAP-based explainability. The attack-validation and autonomous-response layers are still ahead.
+Currently moving on to the LLM-based agentic decision layer. The controlled attack-generation and validation testing has been deliberately deferred to the end of the project, since it needs its own infrastructure and doesn't block the explainability or agentic work above.
