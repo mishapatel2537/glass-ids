@@ -2,15 +2,19 @@
 
 ### Explainable, Self-Tested Intrusion Detection & Autonomous Response System
 
-**Status:** 🚧 Work in Progress
+GlassIDS is a machine-learning-based Network Intrusion Detection System (IDS) that detects malicious network traffic, explains why each alert fired, and decides how to respond using an LLM-powered agent.
 
-GlassIDS is a machine-learning-based Network Intrusion Detection System (IDS) designed to detect malicious network traffic, explain why traffic was flagged, and eventually respond to threats automatically.
+It goes beyond training a model on a public dataset. It combines network traffic analysis, machine learning, explainability, controlled real-world attack testing, and an auditable agentic response layer in one pipeline.
 
-The project is being developed to go beyond simply training a model on a public dataset. It combines network traffic analysis, machine learning, explainability, controlled real-world testing, and an agentic response layer.
+## ✨ Highlights
 
-## 🔄 What GlassIDS Does
+* 🔍 **Explainable:** every alert comes with a SHAP breakdown of the features that drove it
+* 🧪 **Self-tested:** evaluated on attacks generated in a private lab with Kali Linux, not only on a public benchmark
+* 🤖 **Agentic response:** an LLM agent reads the evidence and chooses to block, rate-limit, log, or escalate
+* 📜 **Auditable:** every decision, its reasoning, and the evidence behind it are written to a decision log
+* ⚖️ **Honest evaluation:** class-imbalance-aware metrics instead of headline accuracy
 
-The planned system follows this general pipeline:
+## 🔄 How It Works
 
 ```text
 Network Traffic
@@ -25,80 +29,74 @@ SHAP Explanation
       ↓
 LLM Decision Agent
       ↓
-Response
+Firewall Response (nftables)
       ↓
 Decision Log
 ```
 
-The detector will work primarily with network-flow features rather than analyzing individual packets directly.
+The detector works on network-flow features rather than individual packets. A flow summarizes a whole conversation between two machines (source and destination IP, ports, and protocol) into one row of statistics such as duration, packet counts, byte counts, and TCP flag counts.
 
 ## 🛠️ Technologies
-
-The project currently uses or plans to use:
 
 * **Python** for the main development
 * **tcpdump & Wireshark** for network traffic capture and inspection
 * **CIC-IDS2017** as the primary public dataset
 * **CICFlowMeter / Zeek** for extracting flow features
-* **XGBoost** as the initial machine-learning baseline
-* **PyTorch** for a deep-learning model
+* **XGBoost** as the machine-learning baseline
+* **PyTorch** for the deep-learning models (MLP and 1D-CNN)
 * **SHAP** for model explainability
-* **Kali Linux** for controlled security testing
+* **Kali Linux** for controlled security testing (nmap, hydra, slowhttptest, hping3)
 * **Anthropic / Claude API** for the agentic decision layer
 * **nftables** for firewall-based responses
+* **Suricata** for comparison against a traditional rule-based IDS
+* **Bandit & Semgrep** for security scanning of the project code
 
-## 📌 Current Progress
+## 🧱 Project Components
 
-### ✅ Completed
+### 1. Data & Feature Pipeline 📦
+CIC-IDS2017 was explored and cleaned: missing and infinite values were handled, duplicates removed, labels checked, and the class imbalance documented. A self-built feature-extraction pipeline was validated against the dataset's existing feature data, so the same pipeline can process traffic captured in the lab.
 
-The networking, data-preparation, modeling, and explainability stages are done:
+### 2. Baseline Model 🌲
+An XGBoost classifier was trained and evaluated across all 15 traffic classes. Evaluation focuses on recall, ROC-AUC, per-class precision/recall/F1, and full confusion matrices, since accuracy alone is misleading when attack traffic is a small minority.
 
-* Development and security-testing environment set up
-* Network traffic captured and inspected
-* Basic packet and flow concepts understood
-* CIC-IDS2017 obtained and explored
-* Flow-feature data cleaned, with missing/invalid values checked and class imbalance examined
-* Baseline XGBoost model trained and evaluated across all 15 traffic classes
-* Full baseline methodology and results documented: see [`docs/Baseline-model_Deliverable.md`](docs/Baseline-model_Deliverable.md)
-* PyTorch MLP and 1D-CNN trained and evaluated against the baseline under identical features, split, and class-imbalance handling
-* Full architecture-comparison methodology and findings documented: see [`docs/PyTorch-XGBoost_Comparison.md`](docs/PyTorch-XGBoost_Comparison.md)
-* SHAP-based explanations generated for all three models, covering both known confusion patterns (Bot vs. BENIGN false positives, Web Attack subtype overlap) with global and local (single-alert) explanations
-* Full SHAP methodology and findings documented: see [`docs/SHAP_Explainability.md`](docs/SHAP_Explainability.md)
+📄 Full methodology and results: [`docs/Baseline-model_Deliverable.md`](docs/Baseline-model_Deliverable.md)
 
-### 🔄 In Progress
+### 3. Deep Learning Comparison 🧠
+A PyTorch MLP and a 1D-CNN were trained and compared against the XGBoost baseline using identical features, the same split, and the same class-imbalance handling, so any difference comes from the modeling approach and not from inconsistent setup.
 
-* Initial self-extracted feature-extraction pipeline, validated against the dataset's existing feature data
+📄 Full comparison: [`docs/PyTorch-XGBoost_Comparison.md`](docs/PyTorch-XGBoost_Comparison.md)
 
-### 🗺️ Planned
+### 4. Explainability 🔍
+SHAP explanations were generated for all three models, with both global views (what matters across many predictions) and local views (why one specific alert fired). The analysis explains two known confusion patterns: Bot traffic versus BENIGN false positives, and overlap between Web Attack subtypes.
 
-With the modeling and explainability work done, the project moves toward the agentic layer next, with live attack-generation testing deliberately saved for last:
+📄 Full write-up: [`docs/SHAP_Explainability.md`](docs/SHAP_Explainability.md)
 
-* Connecting SHAP explanations to an LLM decision agent
-* Allowing the agent to choose between block, rate-limit, log-only, or escalate
-* Connecting appropriate responses to `nftables`
-* Recording decisions and reasoning in an auditable log
-* Setting up the controlled attack-generation environment (target VM and Kali networking) and testing against Kali-generated attacks (port scans, brute-force attempts, slow denial-of-service traffic)
-* Measuring detection and false-positive performance on previously unseen traffic
+### 5. Self-Generated Attack Testing 🧪
+A disposable target virtual machine sits on an isolated lab network with a Kali Linux attacker. Kali generated port scans (nmap), SSH brute-force attempts (hydra), and slow denial-of-service traffic (slowhttptest / hping3). Each attack was captured with tcpdump, passed through the same feature-extraction and detection pipeline, and scored for detection rate and false-positive rate on previously unseen traffic.
 
-Additional planned work includes an autoencoder-based anomaly detector, a comparison with Suricata, security scanning of the project code, and a threat-model section.
+This tests whether a model trained on older public data can recognize attacks generated independently in the lab.
 
-## 🧪 Testing Approach
+### 6. Agentic Decision Layer 🤖
+Instead of automatically blocking every high-confidence alert, an LLM agent receives the model's prediction, confidence, flow information, and SHAP explanation. It chooses a response and states its reasoning in plain language before any action is taken.
 
-An important part of GlassIDS is that it will not be evaluated only on the public dataset.
+| Action | What it means |
+| --- | --- |
+| 🚫 **Block** | Generate an `nftables` rule to drop the traffic |
+| 🐢 **Rate-limit** | Generate an `nftables` rule to throttle the traffic |
+| 📝 **Log-only** | Record the event with no firewall action |
+| 🙋 **Escalate** | Flag for human review, logged with no automatic action |
 
-A disposable target virtual machine will be used for controlled security testing. Kali Linux will generate traffic such as port scans, SSH brute-force attempts, and slow denial-of-service traffic.
+Every decision, the agent's reasoning, and the evidence behind it are written to a decision log, so the full path from packet to explanation to action can be reviewed later.
 
-The generated traffic will then be captured and passed through the same feature-extraction and detection pipeline.
+### 7. Extended Analysis 🔬
+* **Autoencoder:** trained on benign traffic only, using reconstruction error as an anomaly score to flag attack types the classifier has never seen labeled examples of
+* **Suricata comparison:** the same captures run through a traditional rule-based IDS, compared against the ML detector's alerts
+* **Code security scan:** Bandit and Semgrep run over the project code, with findings mapped to OWASP / CWE categories
+* **Threat model:** a plain statement of what GlassIDS does and does not defend against (see below)
 
-This allows the project to investigate whether a model trained on older public data can recognize attacks generated independently in the lab.
+## 🔍 Explainability in Action
 
-## 🔍 Explainability
-
-GlassIDS is designed to make its predictions understandable rather than treating the model as a black box.
-
-SHAP is used to identify which network-flow features contributed to a prediction, both globally (what matters across many predictions) and locally (why one specific alert fired).
-
-For example, an alert should eventually be able to show:
+Every alert can show why it was raised, for example:
 
 ```text
 Prediction: Malicious
@@ -112,27 +110,77 @@ Important contributing features:
 Confidence: High
 ```
 
-These explanations will also become part of the evidence supplied to the response agent.
+These explanations are also the evidence supplied to the response agent, so the agent's decision is grounded in the same reasoning a human analyst would see.
 
-## 🤖 Autonomous Response
+## 🧪 Testing Approach
 
-The final stage of the project introduces an LLM-based decision layer.
+GlassIDS is not evaluated only on the public dataset. A model can score very well on a benchmark it was trained on and still fail on traffic it has never seen, which is exactly what it would face in the real world.
 
-Instead of automatically blocking every high-confidence alert, the agent will receive the model's prediction, confidence, flow information, and SHAP explanation and decide what response is appropriate.
+To confront that gap:
 
-Possible responses are:
+1. A disposable target VM is attacked from Kali Linux inside an isolated network
+2. The traffic is captured and verified in Wireshark
+3. The captures go through the same pipeline as the dataset traffic
+4. Detection rate per attack type and false-positive rate on ordinary traffic are reported
 
-* **Block**
-* **Rate-limit**
-* **Log-only**
-* **Escalate for human review**
+## 🛡️ Threat Model
 
-The reasoning and resulting action will be recorded so that the complete path from detection to response can be reviewed later.
+**GlassIDS is designed to detect:**
+* Port scans, brute-force login attempts, and slow denial-of-service traffic
+* Attack patterns that look anomalous at the flow level
 
-## 📍 Current Status
+**GlassIDS does not claim to defend against:**
+* Encrypted command-and-control traffic with no flow-level anomaly
+* Attacks that closely imitate normal traffic
+* Payload-level attacks that need deep packet inspection
+* Adversaries who deliberately craft traffic to evade the model
 
-GlassIDS is **actively under development**.
+The LLM agent adds judgment but is not infallible. Escalation exists so that uncertain cases go to a human instead of triggering an automatic block, and every decision is logged for review.
 
-The baseline XGBoost model, the PyTorch architecture comparison, and SHAP-based explainability across all three models are complete, including a mechanistic explanation for both known confusion patterns and one worked local example of a false positive (full write-ups for all three in `docs/`). 🎯
+## ⚠️ Limitations
 
-Currently moving on to the LLM-based agentic decision layer. The controlled attack-generation and validation testing has been deliberately deferred to the end of the project, since it needs its own infrastructure and doesn't block the explainability or agentic work above.
+* The primary training data (CIC-IDS2017) dates from 2017, so newer attack styles may be under-represented
+* Lab-generated attacks cover a limited set of attack types
+* Firewall actions are generated as `nftables` rules and are not necessarily enforced on a live network
+* Class imbalance means rare attack classes are harder to learn and evaluate than common ones
+
+## 🚀 Getting Started
+
+```bash
+# Clone the repository
+git clone https://github.com/<your-username>/glassids.git
+cd glassids
+
+# Create and activate a virtual environment
+python -m venv glassids-env
+source glassids-env/bin/activate      # Windows: glassids-env\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+To use the agentic decision layer, set your Anthropic API key as an environment variable:
+
+```bash
+export ANTHROPIC_API_KEY="your-key-here"
+```
+
+## 📁 Repository Structure
+
+```text
+glassids/
+├── docs/        # Methodology and results write-ups
+├── src/         # Pipeline, models, explainability, and agent code
+├── data/        # Dataset and extracted features (not tracked)
+└── README.md
+```
+
+## ⚖️ Responsible Use
+
+All attack traffic was generated only against a disposable virtual machine that I own, inside an isolated lab network. Do not use these techniques against systems you do not own or have explicit permission to test.
+
+## 📚 Documentation
+
+* [`docs/Baseline-model_Deliverable.md`](docs/Baseline-model_Deliverable.md): XGBoost baseline
+* [`docs/PyTorch-XGBoost_Comparison.md`](docs/PyTorch-XGBoost_Comparison.md): architecture comparison
+* [`docs/SHAP_Explainability.md`](docs/SHAP_Explainability.md): explainability analysis
