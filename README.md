@@ -184,3 +184,4 @@ All attack traffic was generated only against a disposable virtual machine that 
 * [`docs/Baseline-model_Deliverable.md`](docs/Baseline-model_Deliverable.md): XGBoost baseline
 * [`docs/PyTorch-XGBoost_Comparison.md`](docs/PyTorch-XGBoost_Comparison.md): architecture comparison
 * [`docs/SHAP_Explainability.md`](docs/SHAP_Explainability.md): explainability analysis
+* [`docs/Agentic_Layer.md`](docs/Agentic_Layer.md): agentic response layer design and evaluation

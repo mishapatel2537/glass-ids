@@ -5,3 +5,5 @@ data/processed/
 *.csv
 .ipynb_checkpoints/
 .env
+logs/
+*.partial
