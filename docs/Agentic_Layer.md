@@ -178,9 +178,3 @@ Of the 26 disagreements, 18 are the cell where the baseline logs and the agent e
 - The downgrade guardrail was never triggered in the evaluation. Only a forced test shows it works.
 - Heartbleed, SQL injection and Infiltration have too little data for any reliability estimate. The code treats them as unknown.
 
-## ➡️ Next
-
-- Add an "any attack" precision to the class and bucket blocks of the packet, and re-run the evaluation.
-- Move the packager, agent call and responder into `src/` so Kali-derived flows can reuse them.
-- Repeat borderline alerts several times to measure run-to-run stability of the action.
-- Run the agent on flows extracted from my own Kali captures, and update this document and the README limitations when that is done.
