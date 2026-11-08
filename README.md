@@ -12,7 +12,7 @@ It goes beyond training a model on a public dataset. It combines network traffic
 * 🧪 **Self-tested:** evaluated on attacks generated in a private lab with Kali Linux, not only on a public benchmark
 * 🤖 **Agentic response:** an LLM agent reads the evidence and chooses to block, rate-limit, log, or escalate
 * 📜 **Auditable:** every decision, its reasoning, and the evidence behind it are written to a decision log
-* ⚖️ **Honest evaluation:** class-imbalance-aware metrics instead of headline accuracy
+* ⚖️ **Honest evaluation:** class-imbalance-aware metrics instead of headline accuracy, including an honest report of where the detector fails on self-generated traffic
 
 ## 🔄 How It Works
 
@@ -72,9 +72,11 @@ SHAP explanations were generated for all three models, with both global views (w
 📄 Full write-up: [`docs/SHAP_Explainability.md`](docs/SHAP_Explainability.md)
 
 ### 5. Self-Generated Attack Testing 🧪
-A disposable target virtual machine sits on an isolated lab network with a Kali Linux attacker. Kali generated port scans (nmap), SSH brute-force attempts (hydra), and slow denial-of-service traffic (slowhttptest / hping3). Each attack was captured with tcpdump, passed through the same feature-extraction and detection pipeline, and scored for detection rate and false-positive rate on previously unseen traffic.
+A disposable target virtual machine sits on an isolated lab network with a Kali Linux attacker. Kali generated a port scan (nmap), an SSH brute-force attempt (hydra), and slow denial-of-service traffic (slowhttptest). Each attack was captured with tcpdump, hand-labeled at the packet level (self-captured traffic has no ground-truth `Label` column), and passed through the same feature-extraction and detection pipeline used on CIC-IDS2017.
 
-This tests whether a model trained on older public data can recognize attacks generated independently in the lab.
+**The result: a 0% detection rate across all three attack types**, despite the baseline model scoring near-perfectly on these same classes within CIC-IDS2017 itself. The most likely driver is a TCP feature (`Init_Win_bytes_forward`) that shows zero variance across every self-captured flow, since the whole lab is a single attacker machine, while CIC-IDS2017 was captured across many real, differently-configured machines in 2017. This is the clearest demonstration in the project of the gap between benchmark performance and real generalization, which is exactly what this phase was built to test.
+
+📄 Full methodology and findings: [`docs/Self-Generated-Attack-Testing_Deliverable.md`](docs/Self-Generated-Attack-Testing_Deliverable.md)
 
 ### 6. Agentic Decision Layer 🤖
 Instead of automatically blocking every high-confidence alert, an LLM agent receives the model's prediction, confidence, flow information, and SHAP explanation. It chooses a response and states its reasoning in plain language before any action is taken.
@@ -121,7 +123,9 @@ To confront that gap:
 1. A disposable target VM is attacked from Kali Linux inside an isolated network
 2. The traffic is captured and verified in Wireshark
 3. The captures go through the same pipeline as the dataset traffic
-4. Detection rate per attack type and false-positive rate on ordinary traffic are reported
+4. Detection rate per attack type and false-positive rate on previously unseen traffic are reported
+
+This testing surfaced a real generalization gap rather than confirming the model's strong CIC-IDS2017 numbers held up unchanged. Details and the most likely explanation are in [`docs/Self-Generated-Attack-Testing_Deliverable.md`](docs/Self-Generated-Attack-Testing_Deliverable.md).
 
 ## 🛡️ Threat Model
 
@@ -140,7 +144,9 @@ The LLM agent adds judgment but is not infallible. Escalation exists so that unc
 ## ⚠️ Limitations
 
 * The primary training data (CIC-IDS2017) dates from 2017, so newer attack styles may be under-represented
-* Lab-generated attacks cover a limited set of attack types
+* Lab-generated attacks cover a limited set of attack types, and in testing, the detector missed all three of them (0% detection rate); see [`docs/Self-Generated-Attack-Testing_Deliverable.md`](docs/Self-Generated-Attack-Testing_Deliverable.md) for the full result and the most likely explanation
+* The lab itself is a single attacker machine against a single target, so some of the feature differences behind that result (particularly TCP window-size homogeneity) may be an artifact of the lab's small scale rather than something inherent to the attack techniques themselves
+* Only 4 benign flows were available in the self-generated-attack evaluation, so its false-positive result carries very low statistical confidence
 * Firewall actions are generated as `nftables` rules and are not necessarily enforced on a live network
 * Class imbalance means rare attack classes are harder to learn and evaluate than common ones
 
@@ -185,3 +191,4 @@ All attack traffic was generated only against a disposable virtual machine that 
 * [`docs/PyTorch-XGBoost_Comparison.md`](docs/PyTorch-XGBoost_Comparison.md): architecture comparison
 * [`docs/SHAP_Explainability.md`](docs/SHAP_Explainability.md): explainability analysis
 * [`docs/Agentic_Layer.md`](docs/Agentic_Layer.md): agentic response layer design and evaluation
+* [`docs/Self-Generated-Attack-Testing_Deliverable.md`](docs/Self-Generated-Attack-Testing_Deliverable.md): lab attack generation, labeling methodology, and the generalization-gap findings
