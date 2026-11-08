@@ -6,4 +6,5 @@ data/processed/
 .ipynb_checkpoints/
 .env
 logs/
+results/
 *.partial
