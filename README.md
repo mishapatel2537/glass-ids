@@ -43,7 +43,7 @@ The detector works on network-flow features rather than individual packets. A fl
 * **CIC-IDS2017** as the primary public dataset
 * **CICFlowMeter / Zeek** for extracting flow features
 * **XGBoost** as the machine-learning baseline
-* **PyTorch** for the deep-learning models (MLP and 1D-CNN)
+* **PyTorch** for the deep-learning models (MLP, 1D-CNN, and the autoencoder)
 * **SHAP** for model explainability
 * **Kali Linux** for controlled security testing (nmap, hydra, slowhttptest, hping3)
 * **Anthropic / Claude API** for the agentic decision layer
@@ -91,7 +91,10 @@ Instead of automatically blocking every high-confidence alert, an LLM agent rece
 Every decision, the agent's reasoning, and the evidence behind it are written to a decision log, so the full path from packet to explanation to action can be reviewed later.
 
 ### 7. Extended Analysis 🔬
-* **Autoencoder:** trained on benign traffic only, using reconstruction error as an anomaly score to flag attack types the classifier has never seen labeled examples of
+* **Autoencoder:** trained on benign traffic only, using reconstruction error as an anomaly score, with no attack labels used at all. On CIC-IDS2017's held-out test set it caught volumetric DoS/flood attacks well (64 to 97%) but almost completely missed quiet, low-volume attacks like port scans and brute-force logins (under 5%), nearly the opposite of where XGBoost is strong, a genuinely complementary result. On self-captured traffic, a handful of near-zero-variance training features caused the whole network's reconstruction to collapse on both attack and benign flows alike, a distinct failure mode documented in full below.
+
+  📄 Full methodology and findings: [`docs/Autoencoder-Anomaly-Detection_Deliverable.md`](docs/Autoencoder-Anomaly-Detection_Deliverable.md)
+
 * **Suricata comparison:** the same captures run through a traditional rule-based IDS, compared against the ML detector's alerts
 * **Code security scan:** Bandit and Semgrep run over the project code, with findings mapped to OWASP / CWE categories
 * **Threat model:** a plain statement of what GlassIDS does and does not defend against (see below)
@@ -144,11 +147,17 @@ The LLM agent adds judgment but is not infallible. Escalation exists so that unc
 ## ⚠️ Limitations
 
 * The primary training data (CIC-IDS2017) dates from 2017, so newer attack styles may be under-represented
-* Lab-generated attacks cover a limited set of attack types, and in testing, the detector missed all three of them (0% detection rate); see [`docs/Self-Generated-Attack-Testing_Deliverable.md`](docs/Self-Generated-Attack-Testing_Deliverable.md) for the full result and the most likely explanation
+* Lab-generated attacks cover a limited set of attack types, and in testing, the XGBoost detector missed all three of them (0% detection rate); see [`docs/Self-Generated-Attack-Testing_Deliverable.md`](docs/Self-Generated-Attack-Testing_Deliverable.md) for the full result and the most likely explanation
 * The lab itself is a single attacker machine against a single target, so some of the feature differences behind that result (particularly TCP window-size homogeneity) may be an artifact of the lab's small scale rather than something inherent to the attack techniques themselves
 * Only 4 benign flows were available in the self-generated-attack evaluation, so its false-positive result carries very low statistical confidence
+* The autoencoder's self-captured-traffic evaluation is not a usable detection-rate result either, a handful of near-zero-variance training features caused its reconstruction to collapse on both attack and benign flows from the lab alike; see [`docs/Autoencoder-Anomaly-Detection_Deliverable.md`](docs/Autoencoder-Anomaly-Detection_Deliverable.md)
 * Firewall actions are generated as `nftables` rules and are not necessarily enforced on a live network
 * Class imbalance means rare attack classes are harder to learn and evaluate than common ones
+
+## 🔭 Future Scope
+
+* **Autoencoder feature robustness:** drop, clip, or separately handle the handful of near-zero-variance training features (`RST Flag Count`, `Fwd Avg Bulk Rate`, `Fwd PSH Flags`, and similar) responsible for the reconstruction collapse on self-captured traffic, then retrain. This would likely restore genuine discrimination instead of the current flag-everything result. Full diagnosis in [`docs/Autoencoder-Anomaly-Detection_Deliverable.md`](docs/Autoencoder-Anomaly-Detection_Deliverable.md).
+* **An ensemble combining XGBoost and the autoencoder**, given how cleanly their strengths turned out to complement each other on CIC-IDS2017 itself (XGBoost strong on quiet attacks, the autoencoder strong on volumetric ones).
 
 ## 🚀 Getting Started
 
@@ -192,3 +201,4 @@ All attack traffic was generated only against a disposable virtual machine that 
 * [`docs/SHAP_Explainability.md`](docs/SHAP_Explainability.md): explainability analysis
 * [`docs/Agentic_Layer.md`](docs/Agentic_Layer.md): agentic response layer design and evaluation
 * [`docs/Self-Generated-Attack-Testing_Deliverable.md`](docs/Self-Generated-Attack-Testing_Deliverable.md): lab attack generation, labeling methodology, and the generalization-gap findings
+* [`docs/Autoencoder-Anomaly-Detection_Deliverable.md`](docs/Autoencoder-Anomaly-Detection_Deliverable.md): unsupervised anomaly detection, its complementary strengths versus XGBoost, and the self-captured-traffic failure mode
