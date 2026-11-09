@@ -12,7 +12,7 @@ It goes beyond training a model on a public dataset. It combines network traffic
 * 🧪 **Self-tested:** evaluated on attacks generated in a private lab with Kali Linux, not only on a public benchmark
 * 🤖 **Agentic response:** an LLM agent reads the evidence and chooses to block, rate-limit, log, or escalate
 * 📜 **Auditable:** every decision, its reasoning, and the evidence behind it are written to a decision log
-* ⚖️ **Honest evaluation:** class-imbalance-aware metrics instead of headline accuracy, including an honest report of where the detector fails on self-generated traffic
+* ⚖️ **Honest evaluation:** class-imbalance-aware metrics instead of headline accuracy, including an honest report of where the detector, and a traditional rule-based IDS, both fail on self-generated traffic
 
 ## 🔄 How It Works
 
@@ -95,7 +95,10 @@ Every decision, the agent's reasoning, and the evidence behind it are written to
 
   📄 Full methodology and findings: [`docs/Autoencoder-Anomaly-Detection_Deliverable.md`](docs/Autoencoder-Anomaly-Detection_Deliverable.md)
 
-* **Suricata comparison:** the same captures run through a traditional rule-based IDS, compared against the ML detector's alerts
+* **Suricata comparison:** the same three self-captured attacks run through Suricata with the Emerging Threats Open ruleset, first as shipped, then with the conceptually-relevant scan/DoS signatures specifically enabled. **Suricata missed all three attacks either way**, even after enabling a rule whose headline condition exactly matched every flow in the port-scan capture. This is a different failure mode than the ML detector's distributional-shift miss: a rule-based engine can target the right attack category and still require exact byte-level conditions (a precise TCP-option fingerprint, a specific HTTP method-and-header combination) that a different tool version doesn't reproduce. Together, the two results show that neither "train a better model" nor "turn on more rules" is a complete answer to the generalization problem on its own.
+
+  📄 Full methodology and findings: [`docs/Suricata-Comparison_Deliverable.md`](docs/Suricata-Comparison_Deliverable.md)
+
 * **Code security scan:** Bandit and Semgrep run over the project code, with findings mapped to OWASP / CWE categories
 * **Threat model:** a plain statement of what GlassIDS does and does not defend against (see below)
 
@@ -128,7 +131,7 @@ To confront that gap:
 3. The captures go through the same pipeline as the dataset traffic
 4. Detection rate per attack type and false-positive rate on previously unseen traffic are reported
 
-This testing surfaced a real generalization gap rather than confirming the model's strong CIC-IDS2017 numbers held up unchanged. Details and the most likely explanation are in [`docs/Self-Generated-Attack-Testing_Deliverable.md`](docs/Self-Generated-Attack-Testing_Deliverable.md).
+This testing surfaced a real generalization gap rather than confirming the model's strong CIC-IDS2017 numbers held up unchanged, and the same captures showed that a traditional rule-based IDS struggles with the same traffic for different reasons. Details are in [`docs/Self-Generated-Attack-Testing_Deliverable.md`](docs/Self-Generated-Attack-Testing_Deliverable.md) and [`docs/Suricata-Comparison_Deliverable.md`](docs/Suricata-Comparison_Deliverable.md).
 
 ## 🛡️ Threat Model
 
@@ -151,6 +154,7 @@ The LLM agent adds judgment but is not infallible. Escalation exists so that unc
 * The lab itself is a single attacker machine against a single target, so some of the feature differences behind that result (particularly TCP window-size homogeneity) may be an artifact of the lab's small scale rather than something inherent to the attack techniques themselves
 * Only 4 benign flows were available in the self-generated-attack evaluation, so its false-positive result carries very low statistical confidence
 * The autoencoder's self-captured-traffic evaluation is not a usable detection-rate result either, a handful of near-zero-variance training features caused its reconstruction to collapse on both attack and benign flows from the lab alike; see [`docs/Autoencoder-Anomaly-Detection_Deliverable.md`](docs/Autoencoder-Anomaly-Detection_Deliverable.md)
+* Suricata, with the free Emerging Threats Open ruleset, also missed all three self-generated attacks, including after enabling the conceptually-relevant signatures by hand; see [`docs/Suricata-Comparison_Deliverable.md`](docs/Suricata-Comparison_Deliverable.md) for the comparison against the ML detector's own failure mode
 * Firewall actions are generated as `nftables` rules and are not necessarily enforced on a live network
 * Class imbalance means rare attack classes are harder to learn and evaluate than common ones
 
@@ -158,6 +162,7 @@ The LLM agent adds judgment but is not infallible. Escalation exists so that unc
 
 * **Autoencoder feature robustness:** drop, clip, or separately handle the handful of near-zero-variance training features (`RST Flag Count`, `Fwd Avg Bulk Rate`, `Fwd PSH Flags`, and similar) responsible for the reconstruction collapse on self-captured traffic, then retrain. This would likely restore genuine discrimination instead of the current flag-everything result. Full diagnosis in [`docs/Autoencoder-Anomaly-Detection_Deliverable.md`](docs/Autoencoder-Anomaly-Detection_Deliverable.md).
 * **An ensemble combining XGBoost and the autoencoder**, given how cleanly their strengths turned out to complement each other on CIC-IDS2017 itself (XGBoost strong on quiet attacks, the autoencoder strong on volumetric ones).
+* **A more actively maintained or commercial Suricata ruleset**, to see whether less brittle signature-matching logic would catch what the free Emerging Threats Open ruleset missed on this lab's traffic.
 
 ## 🚀 Getting Started
 
@@ -202,3 +207,4 @@ All attack traffic was generated only against a disposable virtual machine that 
 * [`docs/Agentic_Layer.md`](docs/Agentic_Layer.md): agentic response layer design and evaluation
 * [`docs/Self-Generated-Attack-Testing_Deliverable.md`](docs/Self-Generated-Attack-Testing_Deliverable.md): lab attack generation, labeling methodology, and the generalization-gap findings
 * [`docs/Autoencoder-Anomaly-Detection_Deliverable.md`](docs/Autoencoder-Anomaly-Detection_Deliverable.md): unsupervised anomaly detection, its complementary strengths versus XGBoost, and the self-captured-traffic failure mode
+* [`docs/Suricata-Comparison_Deliverable.md`](docs/Suricata-Comparison_Deliverable.md): signature-based detection on the same self-captured attacks, and how its failure mode compares to the ML detector's
