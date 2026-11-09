@@ -1,0 +1,19 @@
+# GlassIDS dependencies, pinned from the project virtual environment (Python 3.13)
+#
+# PyTorch: the project was run with the CUDA 12.6 build (2.14.0+cu126). To get the GPU build:
+#   pip install torch==2.14.0 --index-url https://download.pytorch.org/whl/cu126
+# Running `pip install -r requirements.txt` on its own installs the default build.
+
+anthropic==1.11.0
+joblib==1.5.3
+matplotlib==3.11.1
+numpy==2.5.2
+pandas==3.0.5
+scikit-learn==1.9.0
+seaborn==0.13.2
+shap==0.52.0
+torch==2.14.0
+xgboost==3.4.1
+
+# Notebook environment (only needed to re-run the .ipynb files)
+jupyter==1.1.1

@@ -99,7 +99,10 @@ Every decision, the agent's reasoning, and the evidence behind it are written to
 
   📄 Full methodology and findings: [`docs/Suricata-Comparison_Deliverable.md`](docs/Suricata-Comparison_Deliverable.md)
 
-* **Code security scan:** Bandit and Semgrep run over the project code, with findings mapped to OWASP / CWE categories
+* **Code security scan:** Bandit and Semgrep run over the project code, with findings mapped to OWASP / CWE categories. **14 findings, none High severity.** The only Medium-severity item is three `torch.load` calls that read locally trained model weights, and the installed PyTorch (2.14) already defaults to the safe loading mode, so making `weights_only=True` explicit is a one-line change to clear the finding. The scanners can't reason about design, so the LLM response layer was reviewed by hand against the OWASP Top 10 for LLM Applications: it has real controls (numeric-only input, a fixed action set, fail-to-escalate, dry-run output) but has not been tested with adversarially crafted alerts.
+
+  📄 Full methodology and findings: [`docs/Security-Scan_Deliverable.md`](docs/Security-Scan_Deliverable.md)
+
 * **Threat model:** a plain statement of what GlassIDS does and does not defend against (see below)
 
 ## 🔍 Explainability in Action
@@ -135,17 +138,22 @@ This testing surfaced a real generalization gap rather than confirming the model
 
 ## 🛡️ Threat Model
 
+GlassIDS is a detection and decision-support prototype, not a standalone security control. Its detectors work on flow-level statistics with no packet payloads, so what it can defend against is limited to what a flow summary can show. Each claim below is backed by one of the write-ups in the Documentation section.
+
 **GlassIDS is designed to detect:**
-* Port scans, brute-force login attempts, and slow denial-of-service traffic
-* Attack patterns that look anomalous at the flow level
+* Port scans, brute-force login attempts, and slow denial-of-service traffic. Within CIC-IDS2017 the XGBoost detector handles these classes very well, but it missed this lab's own versions of all three (0% detection), so this is a design goal and not a result demonstrated outside the benchmark
+* Attack patterns that look anomalous at the flow level, such as volumetric DoS and flood traffic, which the autoencoder catches on CIC-IDS2017 (64 to 97%) while largely missing quiet attacks (under 5%)
 
 **GlassIDS does not claim to defend against:**
 * Encrypted command-and-control traffic with no flow-level anomaly
 * Attacks that closely imitate normal traffic
-* Payload-level attacks that need deep packet inspection
+* Payload-level attacks that need deep packet inspection (flow features already can't tell XSS from brute-force web attacks)
 * Adversaries who deliberately craft traffic to evade the model
+* Live traffic: it scores exported flow files, and firewall responses are dry-run `nftables` rules written to a log with synthetic source IPs, never applied
+* Tampering with model files or poisoned training data: nothing currently verifies that a saved model is the one I trained
+* Attack types with too little training data to estimate reliability (Heartbleed, Infiltration, SQL Injection), which the agent escalates instead of acting on
 
-The LLM agent adds judgment but is not infallible. Escalation exists so that uncertain cases go to a human instead of triggering an automatic block, and every decision is logged for review.
+The LLM agent adds judgment but is not infallible. Escalation exists so that uncertain cases go to a human instead of triggering an automatic block, and every decision is logged for review. Its input is a numeric-only alert packet with no free text from the network, its output is limited to four allowed actions, and any failure falls back to escalation, but it has not been tested against adversarially crafted alerts. Alert packets sent to the LLM API contain only numeric flow features, class names, and a synthetic alert ID, not real IPs or payloads.
 
 ## ⚠️ Limitations
 
@@ -156,6 +164,8 @@ The LLM agent adds judgment but is not infallible. Escalation exists so that unc
 * The autoencoder's self-captured-traffic evaluation is not a usable detection-rate result either, a handful of near-zero-variance training features caused its reconstruction to collapse on both attack and benign flows from the lab alike; see [`docs/Autoencoder-Anomaly-Detection_Deliverable.md`](docs/Autoencoder-Anomaly-Detection_Deliverable.md)
 * Suricata, with the free Emerging Threats Open ruleset, also missed all three self-generated attacks, including after enabling the conceptually-relevant signatures by hand; see [`docs/Suricata-Comparison_Deliverable.md`](docs/Suricata-Comparison_Deliverable.md) for the comparison against the ML detector's own failure mode
 * Firewall actions are generated as `nftables` rules and are not necessarily enforced on a live network
+* Every alert the agentic layer has evaluated is a CIC-IDS2017 test row, and no lab-generated attack has been run through the agent yet; see [`docs/Agentic_Layer.md`](docs/Agentic_Layer.md)
+* Static analysis only finds known code patterns, so a clean Bandit and Semgrep result says nothing about the detector's coverage or the LLM layer's robustness; see [`docs/Security-Scan_Deliverable.md`](docs/Security-Scan_Deliverable.md)
 * Class imbalance means rare attack classes are harder to learn and evaluate than common ones
 
 ## 🔭 Future Scope
@@ -189,9 +199,10 @@ export ANTHROPIC_API_KEY="your-key-here"
 
 ```text
 glassids/
-├── docs/        # Methodology and results write-ups
-├── src/         # Pipeline, models, explainability, and agent code
-├── data/        # Dataset and extracted features (not tracked)
+├── docs/                # Methodology and results write-ups
+├── src/                 # Pipeline, models, explainability, and agent code
+├── data/                # Dataset and extracted features (not tracked)
+├── requirements.txt
 └── README.md
 ```
 
@@ -208,3 +219,4 @@ All attack traffic was generated only against a disposable virtual machine that 
 * [`docs/Self-Generated-Attack-Testing_Deliverable.md`](docs/Self-Generated-Attack-Testing_Deliverable.md): lab attack generation, labeling methodology, and the generalization-gap findings
 * [`docs/Autoencoder-Anomaly-Detection_Deliverable.md`](docs/Autoencoder-Anomaly-Detection_Deliverable.md): unsupervised anomaly detection, its complementary strengths versus XGBoost, and the self-captured-traffic failure mode
 * [`docs/Suricata-Comparison_Deliverable.md`](docs/Suricata-Comparison_Deliverable.md): signature-based detection on the same self-captured attacks, and how its failure mode compares to the ML detector's
+* [`docs/Security-Scan_Deliverable.md`](docs/Security-Scan_Deliverable.md): Bandit and Semgrep findings mapped to OWASP / CWE, a manual review of the LLM response layer, and the evidence behind the threat model

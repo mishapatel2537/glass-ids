@@ -9,3 +9,4 @@ logs/
 results/
 *.partial
 suricata_results/
+security_reports/
