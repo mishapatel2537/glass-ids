@@ -90,6 +90,8 @@ Instead of automatically blocking every high-confidence alert, an LLM agent rece
 
 Every decision, the agent's reasoning, and the evidence behind it are written to a decision log, so the full path from packet to explanation to action can be reviewed later.
 
+📄 Full write-up: [`docs/Agentic_Layer.md`](docs/Agentic_Layer.md)
+
 ### 7. Extended Analysis 🔬
 * **Autoencoder:** trained on benign traffic only, using reconstruction error as an anomaly score, with no attack labels used at all. On CIC-IDS2017's held-out test set it caught volumetric DoS/flood attacks well (64 to 97%) but almost completely missed quiet, low-volume attacks like port scans and brute-force logins (under 5%), nearly the opposite of where XGBoost is strong, a genuinely complementary result. On self-captured traffic, a handful of near-zero-variance training features caused the whole network's reconstruction to collapse on both attack and benign flows alike, a distinct failure mode documented in full below.
 
